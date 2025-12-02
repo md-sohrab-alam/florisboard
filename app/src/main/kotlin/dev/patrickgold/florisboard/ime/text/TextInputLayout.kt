@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -35,9 +36,11 @@ import dev.patrickgold.florisboard.app.FlorisPreferenceStore
 import dev.patrickgold.florisboard.ime.smartbar.IncognitoDisplayMode
 import dev.patrickgold.florisboard.ime.smartbar.InlineSuggestionsStyleCache
 import dev.patrickgold.florisboard.ime.smartbar.Smartbar
+import dev.patrickgold.florisboard.ai.GrammarFixFeature
 import dev.patrickgold.florisboard.ime.smartbar.quickaction.QuickActionsOverflowPanel
 import dev.patrickgold.florisboard.ime.text.keyboard.TextKeyboardLayout
 import dev.patrickgold.florisboard.ime.theme.FlorisImeUi
+import dev.patrickgold.florisboard.ime.ui.grammar.GrammarPanelView
 import dev.patrickgold.florisboard.keyboardManager
 import dev.patrickgold.jetpref.datastore.model.observeAsState
 import org.florisboard.lib.snygg.ui.SnyggIcon
@@ -63,23 +66,38 @@ fun TextInputLayout(
                 .wrapContentHeight(),
         ) {
             Smartbar()
-            if (state.isActionsOverflowVisible) {
-                QuickActionsOverflowPanel()
-            } else {
-                Box {
-                    val incognitoDisplayMode by prefs.keyboard.incognitoDisplayMode.observeAsState()
-                    val showIncognitoIcon = evaluator.state.isIncognitoMode &&
-                        incognitoDisplayMode == IncognitoDisplayMode.DISPLAY_BEHIND_KEYBOARD
-                    if (showIncognitoIcon) {
-                        SnyggIcon(
-                            FlorisImeUi.IncognitoModeIndicator.elementName,
-                            modifier = Modifier
-                                .matchParentSize()
-                                .align(Alignment.Center),
-                            painter = painterResource(R.drawable.ic_incognito),
-                        )
+            when {
+                state.isGrammarPanelVisible -> {
+                    val grammarFixFeature = remember { GrammarFixFeature(context) }
+                    val originalText = keyboardManager.grammarPanelOriginalText
+                    GrammarPanelView(
+                        grammarFixFeature = grammarFixFeature,
+                        originalText = originalText,
+                        onDismiss = {
+                            keyboardManager.activeState.isGrammarPanelVisible = false
+                            grammarFixFeature.clearResult()
+                        },
+                    )
+                }
+                state.isActionsOverflowVisible -> {
+                    QuickActionsOverflowPanel()
+                }
+                else -> {
+                    Box {
+                        val incognitoDisplayMode by prefs.keyboard.incognitoDisplayMode.observeAsState()
+                        val showIncognitoIcon = evaluator.state.isIncognitoMode &&
+                            incognitoDisplayMode == IncognitoDisplayMode.DISPLAY_BEHIND_KEYBOARD
+                        if (showIncognitoIcon) {
+                            SnyggIcon(
+                                FlorisImeUi.IncognitoModeIndicator.elementName,
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .align(Alignment.Center),
+                                painter = painterResource(R.drawable.ic_incognito),
+                            )
+                        }
+                        TextKeyboardLayout(evaluator = evaluator)
                     }
-                    TextKeyboardLayout(evaluator = evaluator)
                 }
             }
         }

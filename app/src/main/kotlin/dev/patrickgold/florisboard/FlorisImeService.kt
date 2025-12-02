@@ -433,6 +433,7 @@ class FlorisImeService : LifecycleInputMethodService() {
             activeState.imeUiMode = ImeUiMode.TEXT
             activeState.isActionsOverflowVisible = false
             activeState.isActionsEditorVisible = false
+            activeState.isGrammarPanelVisible = false
         }
     }
 

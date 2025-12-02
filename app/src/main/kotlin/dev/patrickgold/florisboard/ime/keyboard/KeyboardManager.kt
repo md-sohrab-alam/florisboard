@@ -19,6 +19,7 @@ package dev.patrickgold.florisboard.ime.keyboard
 import android.content.Context
 import android.icu.lang.UCharacter
 import android.view.KeyEvent
+import android.view.inputmethod.InputConnection
 import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -26,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.MutableLiveData
 import dev.patrickgold.florisboard.FlorisImeService
 import dev.patrickgold.florisboard.R
+import dev.patrickgold.florisboard.ai.GrammarFixFeature
 import dev.patrickgold.florisboard.app.FlorisPreferenceStore
 import dev.patrickgold.florisboard.appContext
 import dev.patrickgold.florisboard.clipboardManager
@@ -36,6 +38,7 @@ import dev.patrickgold.florisboard.ime.core.DisplayLanguageNamesIn
 import dev.patrickgold.florisboard.ime.core.Subtype
 import dev.patrickgold.florisboard.ime.core.SubtypePreset
 import dev.patrickgold.florisboard.ime.editor.EditorContent
+import dev.patrickgold.florisboard.ime.editor.EditorRange
 import dev.patrickgold.florisboard.ime.editor.FlorisEditorInfo
 import dev.patrickgold.florisboard.ime.editor.ImeOptions
 import dev.patrickgold.florisboard.ime.editor.InputAttributes
@@ -100,6 +103,8 @@ class KeyboardManager(context: Context) : InputKeyEventReceiver {
     val resources = KeyboardManagerResources()
     val activeState = ObservableKeyboardState.new()
     var smartbarVisibleDynamicActionsCount by mutableIntStateOf(0)
+    var grammarPanelOriginalText = ""
+    var grammarPanelOriginalSelection: EditorRange = EditorRange.Unspecified
     private var lastToastReference = WeakReference<Toast>(null)
 
     private val activeEvaluatorGuard = Mutex(locked = false)
@@ -617,6 +622,73 @@ class KeyboardManager(context: Context) : InputKeyEventReceiver {
     }
 
     /**
+     * Handles a [KeyCode.GRAMMAR_CHECK] event.
+     * Reads selected text or entire editor text and shows grammar correction panel.
+     */
+    private suspend fun handleGrammarCheck() {
+        val ic = FlorisImeService.currentInputConnection()
+        if (ic == null) {
+            lastToastReference.get()?.cancel()
+            lastToastReference = WeakReference(
+                appContext.showShortToastSync("No active input connection")
+            )
+            return
+        }
+
+        val content = editorInstance.activeContent
+        val selection = content.selection
+
+        // Get selected text, or entire text if no selection
+        val textToCorrect: String
+        val textRange: EditorRange
+        
+        if (selection.isSelectionMode && content.selectedText.isNotEmpty()) {
+            // Use existing selection
+            textToCorrect = content.selectedText.toString()
+            textRange = selection
+        } else {
+            // Get text before and after cursor
+            val textBefore = content.textBeforeSelection.toString()
+            val textAfter = content.textAfterSelection.toString()
+            if (textBefore.isNotEmpty() || textAfter.isNotEmpty()) {
+                textToCorrect = textBefore + textAfter
+                // Calculate range: from (cursor - textBefore.length) to (cursor + textAfter.length)
+                val cursorPos = selection.start
+                textRange = EditorRange.normalized(cursorPos - textBefore.length, cursorPos + textAfter.length)
+            } else {
+                // Fallback: try to get from InputConnection
+                val selectedText = ic.getSelectedText(0)?.toString() ?: ""
+                if (selectedText.isNotEmpty()) {
+                    textToCorrect = selectedText
+                    textRange = selection
+                } else {
+                    // Get surrounding text
+                    val before = ic.getTextBeforeCursor(1000, 0)?.toString() ?: ""
+                    val after = ic.getTextAfterCursor(1000, 0)?.toString() ?: ""
+                    textToCorrect = before + after
+                    val cursorPos = selection.start
+                    textRange = EditorRange.normalized(cursorPos - before.length, cursorPos + after.length)
+                }
+            }
+        }
+
+        if (textToCorrect.isBlank()) {
+            lastToastReference.get()?.cancel()
+            lastToastReference = WeakReference(
+                appContext.showShortToastSync("No text to correct")
+            )
+            return
+        }
+
+        // Store original text and selection range for replacement
+        grammarPanelOriginalText = textToCorrect
+        grammarPanelOriginalSelection = textRange
+        activeState.isGrammarPanelVisible = true
+        activeState.isActionsOverflowVisible = false
+        // Correction will be requested by LaunchedEffect in GrammarPanelView
+    }
+
+    /**
      * Handles a [KeyCode.KANA_SWITCHER] event
      */
     private fun handleKanaSwitch() {
@@ -772,6 +844,7 @@ class KeyboardManager(context: Context) : InputKeyEventReceiver {
             }
             KeyCode.TOGGLE_INCOGNITO_MODE -> scope.launch { handleToggleIncognitoMode() }
             KeyCode.TOGGLE_AUTOCORRECT -> handleToggleAutocorrect()
+            KeyCode.GRAMMAR_CHECK -> scope.launch { handleGrammarCheck() }
             KeyCode.UNDO -> editorInstance.performUndo()
             KeyCode.VIEW_CHARACTERS -> activeState.keyboardMode = KeyboardMode.CHARACTERS
             KeyCode.VIEW_NUMERIC -> activeState.keyboardMode = KeyboardMode.NUMERIC

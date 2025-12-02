@@ -93,6 +93,8 @@
     <string name="quick_action__toggle_incognito_mode__tooltip">Toggle incognito mode</string>
     <string name="quick_action__toggle_autocorrect" comment="Please mind the limited available space for the quick action strings">Autocorrect</string>
     <string name="quick_action__toggle_autocorrect__tooltip">Toggle autocorrect</string>
+    <string name="quick_action__grammar_check" comment="Please mind the limited available space for the quick action strings">Spelling &amp; Grammar</string>
+    <string name="quick_action__grammar_check__tooltip">Check spelling and grammar</string>
     <string name="quick_action__voice_input" comment="Please mind the limited available space for the quick action strings">Voice input</string>
     <string name="quick_action__voice_input__tooltip" comment="IME stands for Input Method Editor and is indirectly equivalent to 'keyboard'.">Open voice input provider</string>
     <string name="quick_action__one_handed_mode" comment="Please mind the limited available space for the quick action strings">One-handed</string>
@@ -1142,5 +1144,14 @@
         <item quantity="one">{v} candidate</item>
         <item quantity="other">{v} candidates</item>
     </plurals>
+
+    <!-- Grammar Panel -->
+    <string name="grammar_panel__title">Spelling &amp; grammar</string>
+    <string name="grammar_panel__helper_text">Check for errors and suggested improvements.</string>
+    <string name="grammar_panel__copy">Copy</string>
+    <string name="grammar_panel__replace">Replace</string>
+    <string name="grammar_panel__close">Close</string>
+    <string name="grammar_panel__processing">Processing…</string>
+    <string name="grammar_panel__error">Error processing text</string>
 
 </resources>

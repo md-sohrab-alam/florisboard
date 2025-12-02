@@ -519,6 +519,12 @@ data class TextKeyData(
             code = KeyCode.TOGGLE_AUTOCORRECT,
             label = "toggle_autocorrect",
         )
+        /** Predefined key data for [KeyCode.GRAMMAR_CHECK] */
+        val GRAMMAR_CHECK = TextKeyData(
+            type = KeyType.SYSTEM_GUI,
+            code = KeyCode.GRAMMAR_CHECK,
+            label = "grammar_check",
+        )
     }
 }
 
