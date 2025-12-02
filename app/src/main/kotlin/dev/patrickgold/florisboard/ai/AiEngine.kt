@@ -17,6 +17,7 @@
 package dev.patrickgold.florisboard.ai
 
 import android.content.Context
+import dev.patrickgold.florisboard.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -53,15 +54,14 @@ class AiEngine(
     companion object {
         /**
          * Creates an AI engine instance using OpenAI service.
-         * Reads the API key from environment variable OPEN_AI_KEY.
+         * Reads the API key from BuildConfig, which is populated from local.properties at build time.
          *
          * @param context Android context.
          * @return AiEngine instance, or null if API key is not available.
          */
         fun create(context: Context): AiEngine? {
-            // API key should be stored securely (e.g., in build config, environment variable, or secure storage)
-            // For now, reading from a placeholder - replace with actual secure storage mechanism
-            val apiKey = System.getenv("OPENAI_API_KEY") ?: ""
+            // API key is read from BuildConfig, which is populated from local.properties at build time
+            val apiKey = BuildConfig.OPENAI_API_KEY
             if (apiKey.isBlank()) {
                 return null
             }

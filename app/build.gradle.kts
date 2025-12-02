@@ -78,6 +78,7 @@ android {
         buildConfigField("String", "BUILD_COMMIT_HASH", "\"${getGitCommitHash().get()}\"")
         buildConfigField("String", "FLADDONS_API_VERSION", "\"v~draft2\"")
         buildConfigField("String", "FLADDONS_STORE_URL", "\"beta.addons.florisboard.org\"")
+        buildConfigField("String", "OPENAI_API_KEY", "\"${getOpenAiApiKey().get()}\"")
 
         sourceSets {
             maybeCreate("main").apply {
@@ -238,4 +239,16 @@ fun getGitCommitHash(short: Boolean = false): Provider<String> {
         }
     }
     return execProvider.standardOutput.asText.map { it.trim() }
+}
+
+fun getOpenAiApiKey(): Provider<String> {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (!localPropertiesFile.exists()) {
+        return providers.provider { "" }
+    }
+
+    val properties = java.util.Properties()
+    localPropertiesFile.inputStream().use { properties.load(it) }
+    val apiKey = properties.getProperty("OPENAI_API_KEY", "")
+    return providers.provider { apiKey }
 }
